@@ -1,11 +1,15 @@
 import sys
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
+
 
 class Node():
     def __init__(self, state, parent, action):
         self.state = state
         self.parent = parent
         self.action = action
+
+# DFS - Depth first search
+
 
 class StackFrontier():
     def __init__(self):
@@ -27,6 +31,40 @@ class StackFrontier():
             node = self.frontier[-1]
             self.frontier = self.frontier[:-1]
             return node
+
+# BFS - Breadth first search
+
+
+class QueueFrontier(StackFrontier):
+    def remove(self):
+        if self.empty():
+            raise Exception("empty frontier")
+
+        node = self.frontier[0]
+        self.frontier = self.frontier[1:]
+        return node
+
+
+class PriorityFrontier(StackFrontier):
+    def __init__(self, goal):
+        self.frontier = []
+        self.goal = goal
+
+    def add(self, node):
+        self.frontier.append(node)
+        self.frontier.sort(key=self.calculate_distance_to_goal)
+
+    def calculate_distance_to_goal(self, node):
+        return abs(node.state[0] - self.goal[0]) + abs(node.state[1] - self.goal[1])
+
+    def remove(self):
+        if self.empty():
+            raise Exception("empty frontier")
+
+        node = self.frontier[0]
+        self.frontier = self.frontier[1:]
+        return node
+
 
 class Maze():
     def __init__(self, filename):
@@ -108,7 +146,9 @@ class Maze():
 
         # Initialize frontier to just the starting position
         start = Node(state=self.start, parent=None, action=None)
-        frontier = StackFrontier()
+        # frontier = StackFrontier()
+        # frontier = QueueFrontier()
+        frontier = PriorityFrontier(self.end)
         frontier.add(start)
 
         # Initialize an empty explored set
@@ -158,10 +198,12 @@ class Maze():
         )
 
         draw = ImageDraw.Draw(img)
+        fnt = ImageFont.truetype("/Library/Fonts/Arial Unicode.ttf", 28)
 
         solution = self.solution[1] if self.solution is not None else None
         for i, row in enumerate(self.walls):
             for j, col in enumerate(row):
+                has_text = False
                 # Walls
                 if col:
                     fill = (40, 40, 40)
@@ -177,10 +219,12 @@ class Maze():
                 # Solution
                 elif solution is not None and show_solution and (i, j) in solution:
                     fill = (220, 235, 113)
+                    has_text = True
 
                 # Explored
                 elif solution is not None and show_explored and (i, j) in self.explored:
                     fill = (212, 97, 85)
+                    has_text = True
 
                 # Empty cell
                 else:
@@ -190,10 +234,20 @@ class Maze():
                 draw.rectangle(
                     ([
                         (j * cell_size + cell_border, i * cell_size + cell_border),
-                        ((j + 1) * cell_size - cell_border, (i + 1) * cell_size - cell_border),
+                        ((j + 1) * cell_size - cell_border,
+                         (i + 1) * cell_size - cell_border),
                     ]),
                     fill=fill,
                 )
+
+                if has_text:
+                    draw.text(
+                        (j * cell_size + cell_border, i * cell_size + cell_border),
+                        str(abs(i - self.end[0]) +
+                            abs(j - self.end[1])),
+                        font=fnt,
+                        fill=(0, 0, 0, 0)
+                    )
 
         img.save(filename)
 
@@ -211,5 +265,6 @@ def main():
     print("Solution:")
     m.print()
     m.output_image("maze.png", show_explored=True)
+
 
 main()
