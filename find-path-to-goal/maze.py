@@ -44,7 +44,7 @@ class QueueFrontier(StackFrontier):
         self.frontier = self.frontier[1:]
         return node
 
-
+# GBFS - Greedy best-first search
 class PriorityFrontier(StackFrontier):
     def __init__(self, goal):
         self.frontier = []
