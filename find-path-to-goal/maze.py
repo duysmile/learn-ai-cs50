@@ -3,10 +3,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 class Node():
-    def __init__(self, state, parent, action):
+    def __init__(self, state, parent, action, step):
         self.state = state
         self.parent = parent
         self.action = action
+        self.step = step
 
 # DFS - Depth first search
 
@@ -45,6 +46,8 @@ class QueueFrontier(StackFrontier):
         return node
 
 # GBFS - Greedy best-first search
+
+
 class PriorityFrontier(StackFrontier):
     def __init__(self, goal):
         self.frontier = []
@@ -64,6 +67,15 @@ class PriorityFrontier(StackFrontier):
         node = self.frontier[0]
         self.frontier = self.frontier[1:]
         return node
+
+
+class AAsteriskFrontier(PriorityFrontier):
+    def add(self, node):
+        self.frontier.append(node)
+        self.frontier.sort(key=self.estimate_cost)
+
+    def estimate_cost(self, node):
+        return self.calculate_distance_to_goal(node) + node.step
 
 
 class Maze():
@@ -144,15 +156,20 @@ class Maze():
         # Keep track of number of states explored
         self.num_explored = 0
 
+        # track step to go current position
+        step = 0
+
         # Initialize frontier to just the starting position
-        start = Node(state=self.start, parent=None, action=None)
+        start = Node(state=self.start, parent=None, action=None, step=step)
         # frontier = StackFrontier()
         # frontier = QueueFrontier()
         frontier = PriorityFrontier(self.end)
+        # frontier = AAsteriskFrontier(self.end)
         frontier.add(start)
 
         # Initialize an empty explored set
         self.explored = set()
+        self.map = {}
 
         # Keep looping until solution found
         while True:
@@ -179,11 +196,13 @@ class Maze():
 
             # Mark node as explored
             self.explored.add(node.state)
+            self.map[node.state] = node.step
 
             # Add neighbors to frontier
             for action, state in self.neighbors(node.state):
                 if not frontier.contains_state(state) and state not in self.explored:
-                    child = Node(state=state, parent=node, action=action)
+                    child = Node(state=state, parent=node,
+                                 action=action, step=node.step + 1)
                     frontier.add(child)
 
     def output_image(self, filename, show_solution=True, show_explored=False):
@@ -198,7 +217,7 @@ class Maze():
         )
 
         draw = ImageDraw.Draw(img)
-        fnt = ImageFont.truetype("/Library/Fonts/Arial Unicode.ttf", 28)
+        fnt = ImageFont.truetype("/Library/Fonts/Arial Unicode.ttf", 14)
 
         solution = self.solution[1] if self.solution is not None else None
         for i, row in enumerate(self.walls):
@@ -244,7 +263,9 @@ class Maze():
                     draw.text(
                         (j * cell_size + cell_border, i * cell_size + cell_border),
                         str(abs(i - self.end[0]) +
-                            abs(j - self.end[1])),
+                            abs(j - self.end[1])) +
+                        "+" +
+                        str(self.map[(i, j)]),
                         font=fnt,
                         fill=(0, 0, 0, 0)
                     )
