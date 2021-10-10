@@ -163,8 +163,8 @@ class Maze():
         start = Node(state=self.start, parent=None, action=None, step=step)
         # frontier = StackFrontier()
         # frontier = QueueFrontier()
-        frontier = PriorityFrontier(self.end)
-        # frontier = AAsteriskFrontier(self.end)
+        # frontier = PriorityFrontier(self.end)
+        frontier = AAsteriskFrontier(self.end)
         frontier.add(start)
 
         # Initialize an empty explored set
